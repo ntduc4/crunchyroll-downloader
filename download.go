@@ -62,9 +62,36 @@ func downloadPart(url string) ([]byte, error) {
 			}
 			return nil, fmt.Errorf("failed reading body after %d retries: %w", maxRetries, err)
 		}
+		if looksLikeTextResponse(body) {
+			return nil, fmt.Errorf("unexpected text response for %s", url)
+		}
 		return body, nil
 	}
 	return nil, fmt.Errorf("failed after %d retries", maxRetries)
+}
+
+func looksLikeTextResponse(body []byte) bool {
+	trimmed := bytes.TrimSpace(body)
+	if len(trimmed) == 0 {
+		return true
+	}
+	if len(trimmed) >= 5 {
+		prefix := strings.ToLower(string(trimmed[:5]))
+		if prefix == "<html" || prefix == "<?xml" {
+			return true
+		}
+	}
+	textMarkers := [][]byte{
+		[]byte("AccessDenied"),
+		[]byte("Forbidden"),
+		[]byte("Request has expired"),
+	}
+	for _, marker := range textMarkers {
+		if bytes.Contains(trimmed, marker) {
+			return true
+		}
+	}
+	return false
 }
 
 func getFilename(set *mpd.AdaptationSet) string {
@@ -89,65 +116,90 @@ type segmentJob struct {
 	url   string
 }
 
-func downloadParts(baseUrl, representationId *string, set *mpd.AdaptationSet) (string, error) {
-	initUrl := buildUrl(*baseUrl, *representationId, *set.SegmentTemplate.Initialization, nil)
-	initData, err := downloadPart(initUrl)
-	if err != nil {
-		return "", err
-	}
-
-	timeline := expandTimeline(set.SegmentTemplate.SegmentTimeline.S, 1)
-	total := len(timeline)
-	results := make([][]byte, total)
-	var downloadErr error
-	var errOnce sync.Once
-	var done atomic.Int64
-
-	jobs := make(chan segmentJob, total)
-	var wg sync.WaitGroup
-
-	for w := 0; w < maxWorkers; w++ {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
-			for job := range jobs {
-				data, err := downloadPart(job.url)
-				if err != nil {
-					errOnce.Do(func() { downloadErr = err })
-					return
-				}
-				results[job.index] = data
-				count := done.Add(1)
-				fmt.Printf("\rDownloaded %v of %v segments (%v%%)", count, total, (100*count)/int64(total))
-			}
-		}()
-	}
-
-	for i, item := range timeline {
-		url := buildUrl(*baseUrl, *representationId, *set.SegmentTemplate.Media, &item)
-		jobs <- segmentJob{index: i, url: url}
-	}
-	close(jobs)
-	wg.Wait()
-
-	if downloadErr != nil {
-		return "", downloadErr
-	}
-
-	fmt.Println("\nFinished downloading!")
-
+func downloadParts(baseUrl, representationId *string, set *mpd.AdaptationSet, outputPath, inputPath string) (string, error) {
 	var parts []byte
-	parts = append(parts, initData...)
-	for _, data := range results {
+
+	if inputPath != "" {
+		data, err := os.ReadFile(inputPath)
+		if err != nil {
+			return "", err
+		}
 		parts = append(parts, data...)
+		fmt.Println("Finished loading local dump!")
+	} else if set.SegmentTemplate == nil || set.SegmentTemplate.Initialization == nil || set.SegmentTemplate.Media == nil || set.SegmentTemplate.SegmentTimeline == nil {
+		data, err := downloadPart(*baseUrl)
+		if err != nil {
+			return "", err
+		}
+		parts = append(parts, data...)
+		fmt.Println("Finished downloading!")
+	} else {
+		initUrl := buildUrl(*baseUrl, *representationId, *set.SegmentTemplate.Initialization, nil)
+		initData, err := downloadPart(initUrl)
+		if err != nil {
+			return "", err
+		}
+
+		timeline := expandTimeline(set.SegmentTemplate.SegmentTimeline.S, 1)
+		total := len(timeline)
+		results := make([][]byte, total)
+		var downloadErr error
+		var errOnce sync.Once
+		var done atomic.Int64
+
+		jobs := make(chan segmentJob, total)
+		var wg sync.WaitGroup
+
+		for w := 0; w < maxWorkers; w++ {
+			wg.Add(1)
+			go func() {
+				defer wg.Done()
+				for job := range jobs {
+					data, err := downloadPart(job.url)
+					if err != nil {
+						errOnce.Do(func() { downloadErr = err })
+						return
+					}
+					results[job.index] = data
+					count := done.Add(1)
+					fmt.Printf("\rDownloaded %v of %v segments (%v%%)", count, total, (100*count)/int64(total))
+				}
+			}()
+		}
+
+		for i, item := range timeline {
+			url := buildUrl(*baseUrl, *representationId, *set.SegmentTemplate.Media, &item)
+			jobs <- segmentJob{index: i, url: url}
+		}
+		close(jobs)
+		wg.Wait()
+
+		if downloadErr != nil {
+			return "", downloadErr
+		}
+
+		fmt.Println("\nFinished downloading!")
+
+		parts = append(parts, initData...)
+		for _, data := range results {
+			parts = append(parts, data...)
+		}
 	}
 
-	filename := getFilename(set)
+	filename := outputPath
+	if filename == "" {
+		filename = getFilename(set)
+	}
 	file, err := os.Create(filename)
 	if err != nil {
 		return "", err
 	}
 	defer file.Close()
+	if outputPath != "" && inputPath == "" {
+		if err := os.WriteFile(filename+".enc", parts, 0644); err != nil {
+			return "", err
+		}
+	}
 	if err = widevine.DecryptMP4Auto(io.NopCloser(bytes.NewReader(parts)), keys, file); err != nil {
 		return "", fmt.Errorf("widevine.DecryptMP4Auto: %w", err)
 	}
@@ -204,7 +256,7 @@ func downloadEpisode(contentId string, videoQuality, audioQuality, subtitlesLang
 	outputFile := fmt.Sprintf("%s/%s S%02vE%02v [%s].mkv",
 		cleanSeriesTitle,
 		cleanSeriesTitle,
-		info.EpisodeMetadata.SeasonNumber, 
+		info.EpisodeMetadata.SeasonNumber,
 		info.EpisodeMetadata.EpisodeNumber,
 		*videoQuality,
 	)
@@ -217,15 +269,22 @@ func downloadEpisode(contentId string, videoQuality, audioQuality, subtitlesLang
 	episode := getEpisode(contentId)
 	fmt.Printf("Downloading: %s (S%02vE%02v) from %s\n", info.Title, info.EpisodeMetadata.SeasonNumber, info.EpisodeMetadata.EpisodeNumber, info.EpisodeMetadata.SeriesTitle)
 
-	manifest := parseManifest(episode.ManifestURL)
+	manifestPath := strings.TrimSuffix(outputFile, ".mkv") + ".xml"
+	var manifest *mpd.MPD
+	if *decryptOnly {
+		manifest = loadManifestFromFile(manifestPath)
+	} else {
+		manifest = parseManifest(episode.ManifestURL, manifestPath)
+	}
 	pssh := getPssh(manifest)
 	if pssh == nil {
 		panic("PSSH not found")
 	}
+	defaultKID := getDefaultKID(manifest)
 	videoSet := manifest.Period[0].AdaptationSets[0]
 	audioSet := manifest.Period[0].AdaptationSets[1]
 
-	err := getLicense(*pssh, contentId, episode.Token)
+	err := getLicense(*pssh, contentId, episode.Token, defaultKID)
 	if err != nil {
 		fmt.Printf("Error: %s", err)
 		os.Exit(1)
@@ -244,7 +303,20 @@ func downloadEpisode(contentId string, videoQuality, audioQuality, subtitlesLang
 		print("Failed to get the video base URL, maybe the video quality you entered is wrong?\n")
 		os.Exit(1)
 	}
-	videoFile, err := downloadParts(baseUrl, representationId, videoSet)
+	videoOut := ""
+	audioOut := ""
+	videoInput := ""
+	audioInput := ""
+	if *debugDump {
+		videoOut = strings.TrimSuffix(outputFile, ".mkv") + ".video.mp4"
+		audioOut = strings.TrimSuffix(outputFile, ".mkv") + ".audio.m4a"
+	}
+	if *decryptOnly {
+		videoInput = strings.TrimSuffix(outputFile, ".mkv") + ".video.mp4.enc"
+		audioInput = strings.TrimSuffix(outputFile, ".mkv") + ".audio.m4a.enc"
+	}
+
+	videoFile, err := downloadParts(baseUrl, representationId, videoSet, videoOut, videoInput)
 	if err != nil {
 		panic(err)
 	}
@@ -254,7 +326,7 @@ func downloadEpisode(contentId string, videoQuality, audioQuality, subtitlesLang
 		print("Failed to get the audio base URL, maybe the audio quality you entered is wrong?\n")
 		os.Exit(1)
 	}
-	audioFile, err := downloadParts(audioBaseUrl, audioRepresentationId, audioSet)
+	audioFile, err := downloadParts(audioBaseUrl, audioRepresentationId, audioSet, audioOut, audioInput)
 	if err != nil {
 		panic(err)
 	}
@@ -263,7 +335,7 @@ func downloadEpisode(contentId string, videoQuality, audioQuality, subtitlesLang
 		print("Failed to remove the player stream, you will probably have issues downloading other episodes.\n")
 	}
 
-	mergeEverything(videoFile, audioFile, subsFile, outputFile, subtitlesLang, info)
+	mergeEverything(videoFile, audioFile, subsFile, outputFile, subtitlesLang, info, *debugDump)
 }
 
 func downloadSeason(videoQuality, audioQuality, subtitlesLang *string, episodes []SeasonEpisode) {

@@ -3,8 +3,10 @@ package main
 import (
 	"bytes"
 	"encoding/base64"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"net/http"
 	"os"
@@ -17,16 +19,56 @@ import (
 
 var keys []*widevine.Key
 
-// getPssh finds the PSSH in the MPD manifest
+// getPssh finds the first PSSH anywhere in the MPD manifest.
 func getPssh(mpd *mpd.MPD) *string {
-	set := mpd.Period[0].AdaptationSets[0]
-	if set == nil {
-		return nil
+	for _, period := range mpd.Period {
+		for _, set := range period.AdaptationSets {
+			if pssh := getPsshFromProtections(set.ContentProtections); pssh != nil {
+				return pssh
+			}
+
+			for _, representation := range set.Representations {
+				if pssh := getPsshFromProtections(representation.ContentProtections); pssh != nil {
+					return pssh
+				}
+			}
+		}
 	}
 
-	for _, contentProtection := range set.ContentProtections {
+	return nil
+}
+
+func getPsshFromProtections(contentProtections []mpd.Descriptor) *string {
+	for _, contentProtection := range contentProtections {
 		if contentProtection.CencPSSH != nil {
 			return contentProtection.CencPSSH
+		}
+	}
+
+	return nil
+}
+
+func getDefaultKID(mpd *mpd.MPD) *string {
+	for _, period := range mpd.Period {
+		for _, set := range period.AdaptationSets {
+			if kid := getDefaultKIDFromProtections(set.ContentProtections); kid != nil {
+				return kid
+			}
+			for _, representation := range set.Representations {
+				if kid := getDefaultKIDFromProtections(representation.ContentProtections); kid != nil {
+					return kid
+				}
+			}
+		}
+	}
+
+	return nil
+}
+
+func getDefaultKIDFromProtections(contentProtections []mpd.Descriptor) *string {
+	for _, contentProtection := range contentProtections {
+		if contentProtection.CencDefaultKeyId != nil {
+			return contentProtection.CencDefaultKeyId
 		}
 	}
 
@@ -112,7 +154,7 @@ func getWidevineDevice() (*widevine.Device, error) {
 	return nil, nil
 }
 
-func getLicense(psshData, contentId, videoToken string) error {
+func getLicense(psshData, contentId, videoToken string, defaultKID *string) error {
 	device, err := getWidevineDevice()
 	if device == nil {
 		return errors.New("no widevine device provided. You either need:\n- a \".wvd\" file,\n- or \"client_id.bin\" and \"private_key.pem\" files.\nI'm not sharing links for obvious reasons, but search \"ready to use cdms\" on Google :)\n")
@@ -141,6 +183,27 @@ func getLicense(psshData, contentId, videoToken string) error {
 	if err != nil {
 		return err
 	}
+	if defaultKID != nil {
+		keys, err = selectLicenseKey(keys, *defaultKID)
+		if err != nil {
+			return err
+		}
+	}
 
 	return nil
+}
+
+func selectLicenseKey(licenseKeys []*widevine.Key, defaultKID string) ([]*widevine.Key, error) {
+	kidBytes, err := hex.DecodeString(strings.ReplaceAll(defaultKID, "-", ""))
+	if err != nil {
+		return nil, fmt.Errorf("invalid default_KID %q: %w", defaultKID, err)
+	}
+
+	for _, key := range licenseKeys {
+		if key.Type == widevinepb.License_KeyContainer_CONTENT && bytes.Equal(key.ID, kidBytes) {
+			return []*widevine.Key{key}, nil
+		}
+	}
+
+	return nil, fmt.Errorf("no license key matches default_KID %s", defaultKID)
 }

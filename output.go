@@ -6,8 +6,8 @@ import (
 	"os/exec"
 )
 
-// mergeEverything merges audio, video and subtitles in a single MKV container
-func mergeEverything(videoFile, audioFile, subsFile, outputFile string, subtitlesLang *string, info EpisodeInfo) {
+// mergeEverything merges audio, video and subtitles in a single MKV container.
+func mergeEverything(videoFile, audioFile, subsFile, outputFile string, subtitlesLang *string, info EpisodeInfo, keepSources bool) {
 	args := []string{
 		"-i", videoFile,
 		"-i", audioFile,
@@ -35,10 +35,11 @@ func mergeEverything(videoFile, audioFile, subsFile, outputFile string, subtitle
 		panic(err)
 	}
 
-	// Remove stuff
-	_ = os.Remove(videoFile)
-	_ = os.Remove(audioFile)
-	_ = os.Remove(subsFile)
+	if !keepSources {
+		_ = os.Remove(videoFile)
+		_ = os.Remove(audioFile)
+		_ = os.Remove(subsFile)
+	}
 
 	fmt.Printf("\nDownload finished! Output file: %s\n\n", outputFile)
 }

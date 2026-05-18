@@ -17,6 +17,8 @@ var (
 	audioQuality  = flag.String("audio-quality", "192k", "Audio quality")
 	seasonNumber  = flag.Int("season", 0, "Season number. Not used if an episode link is entered")
 	etpRt         = flag.String("etp-rt", "", "The \"etp_rt\" cookie value of your account")
+	debugDump     = flag.Bool("debug-dump", false, "Keep decrypted tracks and raw encrypted inputs")
+	decryptOnly   = flag.Bool("decrypt-only", false, "Decrypt from local .xml and .enc dumps instead of downloading media")
 )
 
 func processUrl(url string) {

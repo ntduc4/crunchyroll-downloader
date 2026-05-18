@@ -3,13 +3,14 @@ package main
 import (
 	"io"
 	"net/http"
+	"os"
 	"strconv"
 	"strings"
 
 	"github.com/unki2aut/go-mpd"
 )
 
-func parseManifest(url string) *mpd.MPD {
+func parseManifest(url, debugPath string) *mpd.MPD {
 	req, err := http.NewRequest(http.MethodGet, url, nil)
 	if err != nil {
 		panic(err)
@@ -26,9 +27,26 @@ func parseManifest(url string) *mpd.MPD {
 	if err != nil {
 		panic(err)
 	}
+	if debugPath != "" {
+		if err := os.WriteFile(debugPath, body, 0644); err != nil {
+			panic(err)
+		}
+	}
 	mpd := new(mpd.MPD)
 	mpd.Decode(body)
 
+	return mpd
+}
+
+func loadManifestFromFile(path string) *mpd.MPD {
+	body, err := os.ReadFile(path)
+	if err != nil {
+		panic(err)
+	}
+	mpd := new(mpd.MPD)
+	if err := mpd.Decode(body); err != nil {
+		panic(err)
+	}
 	return mpd
 }
 
