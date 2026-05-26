@@ -281,7 +281,8 @@ func resolveAudioVariants(contentID string, info EpisodeInfo, requestedLanguage 
 
 func resolveSubtitleLanguages(subtitles map[string]*Subtitle, requestedLanguage string) []string {
 	if requestedLanguage != "all" {
-		if subtitles[requestedLanguage] == nil {
+		sub := subtitles[requestedLanguage]
+		if sub == nil || sub.URL == "" {
 			return nil
 		}
 		return []string{requestedLanguage}
@@ -290,7 +291,11 @@ func resolveSubtitleLanguages(subtitles map[string]*Subtitle, requestedLanguage 
 	locales := sortedLanguageKeys(subtitles)
 	filtered := make([]string, 0, len(locales))
 	for _, locale := range locales {
-		if subtitles[locale] != nil {
+		if locale == "" {
+			continue
+		}
+		sub := subtitles[locale]
+		if sub != nil && sub.URL != "" {
 			filtered = append(filtered, locale)
 		}
 	}

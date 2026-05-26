@@ -148,3 +148,42 @@ func TestResolveSubtitleLanguages_Empty_Nil(t *testing.T) {
 		t.Errorf("resolveSubtitleLanguages(nil, single) = %v, want nil", got2)
 	}
 }
+
+func TestResolveSubtitleLanguages_FiltersEmptyURL(t *testing.T) {
+	subs := map[string]*Subtitle{
+		"en-US": {Language: "en-US", URL: "http://example.com/en.ass"},
+		"ja-JP": {Language: "ja-JP", URL: ""},
+		"de-DE": {Language: "de-DE", URL: ""},
+	}
+
+	got := resolveSubtitleLanguages(subs, "all")
+	want := []string{"en-US"}
+	if !reflect.DeepEqual(got, want) {
+		t.Errorf("resolveSubtitleLanguages(all, with empty URLs) = %v, want %v", got, want)
+	}
+}
+
+func TestResolveSubtitleLanguages_SingleEmptyURL(t *testing.T) {
+	subs := map[string]*Subtitle{
+		"en-US": {Language: "en-US", URL: ""},
+	}
+
+	got := resolveSubtitleLanguages(subs, "en-US")
+	if got != nil {
+		t.Errorf("resolveSubtitleLanguages(single, empty URL) = %v, want nil", got)
+	}
+}
+
+func TestResolveSubtitleLanguages_FiltersEmptyLocaleKey(t *testing.T) {
+	subs := map[string]*Subtitle{
+		"":      {Language: "none", URL: ""},
+		"en-US": {Language: "en-US", URL: "http://example.com/en.ass"},
+		"ja-JP": {Language: "ja-JP", URL: "http://example.com/ja.ass"},
+	}
+
+	got := resolveSubtitleLanguages(subs, "all")
+	want := []string{"en-US", "ja-JP"}
+	if !reflect.DeepEqual(got, want) {
+		t.Errorf("resolveSubtitleLanguages(all, with empty key) = %v, want %v", got, want)
+	}
+}
