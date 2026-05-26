@@ -1,5 +1,18 @@
 # Changelog
 
+## 1.3.0
+
+- Multi-language audio support: download all available dubs into a single MKV
+- Multi-language subtitle support: download all available subtitle languages
+- `-audio-lang` and `-subs-lang` now default to `all`; specific locales still accepted
+- `-setup-dir <path>` flag: saves all tracks + metadata JSONs to a directory, skips muxing
+- `scripts/setup-testdata.sh` to generate offline test fixtures from any episode
+- Integration test suite — discovers all testdata directories, no hardcoded episode names
+- Fixed panic on subtitle entries with empty URLs
+- Removed content ID length gate — supports all Crunchyroll ID formats (9, 10, 14 chars)
+- Project restructured to Go conventions: `cmd/`, `internal/lib/`, `testdata/`
+- Added `CONTRIBUTING.md` with developer setup guide
+
 ## 1.2.0
 
 - Parallel segment downloads (10 workers) for much faster downloads
