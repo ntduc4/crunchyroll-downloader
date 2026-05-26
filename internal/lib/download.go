@@ -2,10 +2,12 @@ package lib
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
 	"os"
+	"path/filepath"
 	"sort"
 	"strings"
 	"sync"
@@ -28,6 +30,7 @@ var (
 	DebugDump     *bool
 	DecryptOnly   *bool
 	SeasonNumber  *int
+	SetupDir      *string
 )
 
 func buildUrl(base, representationId, file string, partNum *int64) string {
@@ -220,7 +223,7 @@ func downloadParts(baseUrl, representationId *string, set *mpd.AdaptationSet, ou
 	return filename, nil
 }
 
-func downloadSubs(url string) string {
+func downloadSubs(url, outputPath string) string {
 	req, err := http.NewRequest(http.MethodGet, url, nil)
 	if err != nil {
 		panic(err)
@@ -239,7 +242,10 @@ func downloadSubs(url string) string {
 		panic(err)
 	}
 
-	filename := getFilename(nil)
+	filename := outputPath
+	if filename == "" {
+		filename = getFilename(nil)
+	}
 	file, err := os.Create(filename)
 	if err != nil {
 		panic(err)
@@ -345,27 +351,45 @@ func DownloadEpisode(contentId string, VideoQuality, AudioQuality, SubtitlesLang
 	audioVariants := resolveAudioVariants(contentId, info, *AudioLang)
 	primaryVariant := audioVariants[0]
 
-	if _, err := os.Stat(cleanSeriesTitle); err != nil {
-		_ = os.MkdirAll(cleanSeriesTitle, 0777)
+	setupMode := SetupDir != nil && *SetupDir != ""
+	if setupMode {
+		_ = os.MkdirAll(filepath.Join(*SetupDir, "audio"), 0777)
+		_ = os.MkdirAll(filepath.Join(*SetupDir, "subtitles"), 0777)
+		_ = os.MkdirAll(filepath.Join(*SetupDir, "manifests"), 0777)
 	}
 
-	outputFile := fmt.Sprintf("%s/%s S%02vE%02v [%s].mkv",
-		cleanSeriesTitle,
-		cleanSeriesTitle,
-		info.EpisodeMetadata.SeasonNumber,
-		info.EpisodeMetadata.EpisodeNumber,
-		*VideoQuality,
-	)
+	var outputFile string
+	if !setupMode {
+		if _, err := os.Stat(cleanSeriesTitle); err != nil {
+			_ = os.MkdirAll(cleanSeriesTitle, 0777)
+		}
 
-	if _, err := os.Stat(outputFile); err == nil {
-		fmt.Printf("Episode %v is already downloaded, skipping...\n", info.EpisodeMetadata.EpisodeNumber)
-		return
+		outputFile = fmt.Sprintf("%s/%s S%02vE%02v [%s].mkv",
+			cleanSeriesTitle,
+			cleanSeriesTitle,
+			info.EpisodeMetadata.SeasonNumber,
+			info.EpisodeMetadata.EpisodeNumber,
+			*VideoQuality,
+		)
+
+		if _, err := os.Stat(outputFile); err == nil {
+			fmt.Printf("Episode %v is already downloaded, skipping...\n", info.EpisodeMetadata.EpisodeNumber)
+			return
+		}
 	}
 
 	episode := GetEpisode(primaryVariant.ContentID)
 	fmt.Printf("Downloading: %s (S%02vE%02v) from %s\n", info.Title, info.EpisodeMetadata.SeasonNumber, info.EpisodeMetadata.EpisodeNumber, info.EpisodeMetadata.SeriesTitle)
 
+	if setupMode {
+		saveJSONFile(filepath.Join(*SetupDir, "episode_info.json"), info)
+		saveJSONFile(filepath.Join(*SetupDir, "playback.json"), episode)
+	}
+
 	manifestPath := strings.TrimSuffix(outputFile, ".mkv") + ".xml"
+	if setupMode {
+		manifestPath = filepath.Join(*SetupDir, "manifest.xml")
+	}
 	var manifest *mpd.MPD
 	if *DecryptOnly {
 		manifest = loadManifestFromFile(manifestPath)
@@ -394,7 +418,11 @@ func DownloadEpisode(contentId string, VideoQuality, AudioQuality, SubtitlesLang
 	for _, locale := range subtitleLanguages {
 		subtitles := episode.Subtitles[locale]
 		fmt.Printf("Downloading subtitles for %s...\n", languageLabel(locale))
-		subtitleFiles = append(subtitleFiles, mediaTrack{Path: downloadSubs(subtitles.URL), Language: locale})
+		var subPath string
+		if setupMode {
+			subPath = filepath.Join(*SetupDir, "subtitles", locale+".ass")
+		}
+		subtitleFiles = append(subtitleFiles, mediaTrack{Path: downloadSubs(subtitles.URL, subPath), Language: locale})
 	}
 	if len(subtitleFiles) > 0 {
 		fmt.Println("Downloaded subtitles!")
@@ -407,10 +435,12 @@ func DownloadEpisode(contentId string, VideoQuality, AudioQuality, SubtitlesLang
 	}
 	videoOut := ""
 	videoInput := ""
-	if *DebugDump {
+	if setupMode {
+		videoOut = filepath.Join(*SetupDir, "video.mp4")
+	} else if *DebugDump {
 		videoOut = strings.TrimSuffix(outputFile, ".mkv") + ".video.mp4"
 	}
-	if *DecryptOnly {
+	if *DecryptOnly && !setupMode {
 		videoInput = strings.TrimSuffix(outputFile, ".mkv") + ".video.mp4.enc"
 	}
 
@@ -420,13 +450,16 @@ func DownloadEpisode(contentId string, VideoQuality, AudioQuality, SubtitlesLang
 	}
 
 	audioFiles := make([]mediaTrack, 0, len(audioVariants))
-	includeLocaleInAudioDump := len(audioVariants) > 1
 	baseAudioOut := ""
-	if *DebugDump {
+	if setupMode {
+		baseAudioOut = filepath.Join(*SetupDir, "audio", audioVariants[0].AudioLocale+".m4a")
+	} else if *DebugDump {
+		includeLocaleInAudioDump := len(audioVariants) > 1
 		baseAudioOut = getAudioTrackOutputPath(outputFile, audioVariants[0].AudioLocale, includeLocaleInAudioDump)
 	}
 	baseAudioInput := ""
-	if *DecryptOnly {
+	if *DecryptOnly && !setupMode {
+		includeLocaleInAudioDump := len(audioVariants) > 1
 		baseAudioInput = getAudioTrackOutputPath(outputFile, audioVariants[0].AudioLocale, includeLocaleInAudioDump) + ".enc"
 	}
 	audioBaseUrl, audioRepresentationId := getBaseUrl(audioSet, false, *AudioQuality)
@@ -448,6 +481,9 @@ func DownloadEpisode(contentId string, VideoQuality, AudioQuality, SubtitlesLang
 		fmt.Printf("Downloading audio for %s...\n", languageLabel(variant.AudioLocale))
 		variantEpisode := GetEpisode(variant.ContentID)
 		variantManifestPath := getAudioManifestPath(outputFile, variant.AudioLocale, true)
+		if setupMode {
+			variantManifestPath = filepath.Join(*SetupDir, "manifests", variant.AudioLocale+".xml")
+		}
 		var variantManifest *mpd.MPD
 		if *DecryptOnly {
 			variantManifest = loadManifestFromFile(variantManifestPath)
@@ -473,11 +509,13 @@ func DownloadEpisode(contentId string, VideoQuality, AudioQuality, SubtitlesLang
 			os.Exit(1)
 		}
 		variantAudioOut := ""
-		if *DebugDump {
+		if setupMode {
+			variantAudioOut = filepath.Join(*SetupDir, "audio", variant.AudioLocale+".m4a")
+		} else if *DebugDump {
 			variantAudioOut = getAudioTrackOutputPath(outputFile, variant.AudioLocale, true)
 		}
 		variantAudioInput := ""
-		if *DecryptOnly {
+		if *DecryptOnly && !setupMode {
 			variantAudioInput = getAudioTrackOutputPath(outputFile, variant.AudioLocale, true) + ".enc"
 		}
 		variantAudioFile, err := downloadParts(variantAudioBaseURL, variantAudioRepresentationID, variantAudioSet, variantAudioOut, variantAudioInput)
@@ -490,7 +528,22 @@ func DownloadEpisode(contentId string, VideoQuality, AudioQuality, SubtitlesLang
 		}
 	}
 
+	if setupMode {
+		fmt.Println("\nSetup finished! All tracks saved to", *SetupDir)
+		return
+	}
+
 	mergeEverything(videoFile, audioFiles, subtitleFiles, outputFile, info, *DebugDump)
+}
+
+func saveJSONFile(path string, v interface{}) {
+	data, err := json.MarshalIndent(v, "", "  ")
+	if err != nil {
+		panic(err)
+	}
+	if err := os.WriteFile(path, data, 0644); err != nil {
+		panic(err)
+	}
 }
 
 func DownloadSeason(VideoQuality, AudioQuality, SubtitlesLang *string, episodes []SeasonEpisode) {

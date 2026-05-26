@@ -22,6 +22,7 @@ func main() {
 	lib.EtpRt = flag.String("etp-rt", "", "The \"etp_rt\" cookie value of your account")
 	lib.DebugDump = flag.Bool("debug-dump", false, "Keep decrypted tracks and raw encrypted inputs")
 	lib.DecryptOnly = flag.Bool("decrypt-only", false, "Decrypt from local .xml and .enc dumps instead of downloading media")
+	lib.SetupDir = flag.String("setup-dir", "", "Save all tracks and metadata to directory for testing (skips muxing)")
 
 	flag.Parse()
 
