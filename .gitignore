@@ -17,4 +17,7 @@ private_key.pem
 *.mp3
 
 # build result
-crunchyroll-downloader
+/crunchyroll-downloader
+
+# Test data (commit these)
+!internal/lib/testdata/**

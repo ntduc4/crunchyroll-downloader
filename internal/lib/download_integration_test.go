@@ -1,4 +1,4 @@
-package main
+package lib
 
 import (
 	"fmt"
@@ -9,8 +9,8 @@ import (
 	"github.com/unki2aut/go-mpd"
 )
 
-const ep1XML = "Solo Leveling/Solo Leveling S01E01 [1080p].xml"
-const ep2XML = "Solo Leveling/Solo Leveling S01E02 [1080p].xml"
+const ep1XML = "testdata/solo-leveling/ep1.xml"
+const ep2XML = "testdata/solo-leveling/ep2.xml"
 
 func epManifest(t *testing.T, path string) *mpd.MPD {
 	t.Helper()

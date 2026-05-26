@@ -1,4 +1,4 @@
-package main
+package lib
 
 import (
 	"testing"
@@ -7,7 +7,7 @@ import (
 )
 
 func TestGetVideoSet(t *testing.T) {
-	manifest := loadManifestFromFile("Solo Leveling/Solo Leveling S01E01 [1080p].xml")
+	manifest := loadManifestFromFile("testdata/solo-leveling/ep1.xml")
 
 	set := getVideoSet(manifest)
 	if set == nil {
@@ -29,7 +29,7 @@ func TestGetVideoSet_NilOnEmpty(t *testing.T) {
 }
 
 func TestGetAudioSet(t *testing.T) {
-	manifest := loadManifestFromFile("Solo Leveling/Solo Leveling S01E01 [1080p].xml")
+	manifest := loadManifestFromFile("testdata/solo-leveling/ep1.xml")
 
 	set := getAudioSet(manifest, "ja-JP")
 	if set == nil {
@@ -44,7 +44,7 @@ func TestGetAudioSet(t *testing.T) {
 }
 
 func TestGetAudioSet_WrongLocaleFallsBack(t *testing.T) {
-	manifest := loadManifestFromFile("Solo Leveling/Solo Leveling S01E01 [1080p].xml")
+	manifest := loadManifestFromFile("testdata/solo-leveling/ep1.xml")
 
 	set := getAudioSet(manifest, "fr-FR")
 	if set == nil {
@@ -63,7 +63,7 @@ func TestGetAudioSet_NilOnEmpty(t *testing.T) {
 }
 
 func TestGetBaseUrl_Video(t *testing.T) {
-	manifest := loadManifestFromFile("Solo Leveling/Solo Leveling S01E01 [1080p].xml")
+	manifest := loadManifestFromFile("testdata/solo-leveling/ep1.xml")
 	set := getVideoSet(manifest)
 
 	base, repID := getBaseUrl(set, true, "1080p")
@@ -81,7 +81,7 @@ func TestGetBaseUrl_Video(t *testing.T) {
 }
 
 func TestGetBaseUrl_Audio(t *testing.T) {
-	manifest := loadManifestFromFile("Solo Leveling/Solo Leveling S01E01 [1080p].xml")
+	manifest := loadManifestFromFile("testdata/solo-leveling/ep1.xml")
 	set := getAudioSet(manifest, "ja-JP")
 
 	for _, quality := range []string{"192k", "128k", "96k"} {
@@ -166,7 +166,7 @@ func TestExpandTimeline(t *testing.T) {
 }
 
 func TestLoadManifestFromFile(t *testing.T) {
-	m := loadManifestFromFile("Solo Leveling/Solo Leveling S01E01 [1080p].xml")
+	m := loadManifestFromFile("testdata/solo-leveling/ep1.xml")
 	if m == nil {
 		t.Fatal("loadManifestFromFile returned nil")
 	}
@@ -179,7 +179,7 @@ func TestLoadManifestFromFile(t *testing.T) {
 }
 
 func TestGetPssh(t *testing.T) {
-	manifest := loadManifestFromFile("Solo Leveling/Solo Leveling S01E01 [1080p].xml")
+	manifest := loadManifestFromFile("testdata/solo-leveling/ep1.xml")
 	pssh := getPssh(manifest)
 	if pssh == nil {
 		t.Fatal("getPssh returned nil")
@@ -190,7 +190,7 @@ func TestGetPssh(t *testing.T) {
 }
 
 func TestGetDefaultKID(t *testing.T) {
-	manifest := loadManifestFromFile("Solo Leveling/Solo Leveling S01E01 [1080p].xml")
+	manifest := loadManifestFromFile("testdata/solo-leveling/ep1.xml")
 	kid := getDefaultKID(manifest)
 	if kid == nil {
 		t.Fatal("getDefaultKID returned nil")

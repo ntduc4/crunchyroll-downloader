@@ -1,4 +1,4 @@
-package main
+package lib
 
 import (
 	"net/http"
@@ -11,10 +11,10 @@ func DoRequest(req *http.Request) (*http.Response, error) {
 		return nil, err
 	}
 	if resp.StatusCode == http.StatusUnauthorized {
-		print("Access token expired. Refetching one...\n")
-		// Refetch an access token
-		token = GetAccessToken(*etpRt)
-		req.Header.Set("Authorization", "Bearer "+token)
+		print("Access Token expired. Refetching one...\n")
+		// Refetch an access Token
+		Token = GetAccessToken(*EtpRt)
+		req.Header.Set("Authorization", "Bearer "+Token)
 		// and retry the request
 		return DoRequest(req)
 	}

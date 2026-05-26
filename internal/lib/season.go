@@ -1,4 +1,4 @@
-package main
+package lib
 
 import (
 	"encoding/json"
@@ -22,12 +22,12 @@ type SeasonEpisode struct {
 	AvailabilityStarts string        `json:"availability_starts"`
 }
 
-func getSeasonEpisodes(contentId string) []SeasonEpisode {
+func GetSeasonEpisodes(contentId string) []SeasonEpisode {
 	req, err := http.NewRequest(http.MethodGet, fmt.Sprintf("https://www.crunchyroll.com/content/v2/cms/seasons/%s/episodes?preferred_audio_language=ja-JP&locale=en-US", contentId), nil)
 	if err != nil {
 		panic(err)
 	}
-	req.Header.Set("Authorization", "Bearer "+token)
+	req.Header.Set("Authorization", "Bearer "+Token)
 	req.Header.Set("User-Agent", "Mozilla/5.0 (X11; Linux x86_64; rv:147.0) Gecko/20100101 Firefox/147.0")
 	resp, err := DoRequest(req)
 	if err != nil {
@@ -55,12 +55,12 @@ type Season struct {
 	SeasonNumber int    `json:"season_number"`
 }
 
-func getSeasons(contentId string) []Season {
+func GetSeasons(contentId string) []Season {
 	req, err := http.NewRequest(http.MethodGet, fmt.Sprintf("https://www.crunchyroll.com/content/v2/cms/series/%s/seasons?force_locale=&preferred_audio_language=ja-JP&locale=en-US", contentId), nil)
 	if err != nil {
 		panic(err)
 	}
-	req.Header.Set("Authorization", "Bearer "+token)
+	req.Header.Set("Authorization", "Bearer "+Token)
 	req.Header.Set("User-Agent", "Mozilla/5.0 (X11; Linux x86_64; rv:147.0) Gecko/20100101 Firefox/147.0")
 	resp, err := DoRequest(req)
 	if err != nil {

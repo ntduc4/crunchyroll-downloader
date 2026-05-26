@@ -78,7 +78,7 @@ To download every available audio dub and subtitle language into a single MKV:
 
 - Clone this repository
 - Open a Terminal/Command prompt, and go to the folder where you cloned the repo
-- Run `go build .`
+- Run `go build ./cmd/crunchyroll-downloader`
 
 ## Help
 

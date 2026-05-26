@@ -1,4 +1,4 @@
-package main
+package lib
 
 import (
 	"encoding/json"
@@ -17,8 +17,8 @@ type CrunchyrollTokenResponse struct {
 	AccessToken string `json:"access_token"`
 }
 
-// GetAccessToken fetches an access token from Crunchyroll
-func GetAccessToken(etpRt string) string {
+// GetAccessToken fetches an access Token from Crunchyroll
+func GetAccessToken(EtpRt string) string {
 	body := url.Values{}
 	body.Set("device_id", deviceId)
 	body.Set("device_type", "Firefox on Linux")
@@ -32,7 +32,7 @@ func GetAccessToken(etpRt string) string {
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	req.Header.Set("User-Agent", "Mozilla/5.0 (X11; Linux x86_64; rv:147.0) Gecko/20100101 Firefox/147.0")
 	req.AddCookie(&http.Cookie{Name: "device_id", Value: deviceId})
-	req.AddCookie(&http.Cookie{Name: "etp_rt", Value: etpRt})
+	req.AddCookie(&http.Cookie{Name: "etp_rt", Value: EtpRt})
 
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
@@ -44,7 +44,7 @@ func GetAccessToken(etpRt string) string {
 	res, err := io.ReadAll(resp.Body)
 	var result CrunchyrollTokenResponse
 	if err := json.Unmarshal(res, &result); err != nil {
-		panic(fmt.Errorf("failed to get access token: %w", err))
+		panic(fmt.Errorf("failed to get access Token: %w", err))
 	}
 
 	return result.AccessToken

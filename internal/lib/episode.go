@@ -1,4 +1,4 @@
-package main
+package lib
 
 import (
 	"encoding/json"
@@ -26,12 +26,12 @@ type Subtitle struct {
 	URL string `json:"url"`
 }
 
-func getEpisode(id string) Episode {
+func GetEpisode(id string) Episode {
 	req, err := http.NewRequest(http.MethodGet, fmt.Sprintf("https://www.crunchyroll.com/playback/v3/%s/web/firefox/play", id), nil)
 	if err != nil {
 		panic(err)
 	}
-	req.Header.Set("Authorization", "Bearer "+token)
+	req.Header.Set("Authorization", "Bearer "+Token)
 	req.Header.Set("User-Agent", "Mozilla/5.0 (X11; Linux x86_64; rv:147.0) Gecko/20100101 Firefox/147.0")
 	resp, err := DoRequest(req)
 	if err != nil {
@@ -80,12 +80,12 @@ type DubVersion struct {
 	GUID        string `json:"guid"`
 }
 
-func getEpisodeInfo(id string) EpisodeInfo {
+func GetEpisodeInfo(id string) EpisodeInfo {
 	req, err := http.NewRequest(http.MethodGet, fmt.Sprintf("https://www.crunchyroll.com/content/v2/cms/objects/%s?ratings=true&preferred_audio_language=ja-JP&locale=en-US", id), nil)
 	if err != nil {
 		panic(err)
 	}
-	req.Header.Set("Authorization", "Bearer "+token)
+	req.Header.Set("Authorization", "Bearer "+Token)
 	req.Header.Set("User-Agent", "Mozilla/5.0 (X11; Linux x86_64; rv:147.0) Gecko/20100101 Firefox/147.0")
 	resp, err := DoRequest(req)
 	if err != nil {
@@ -105,13 +105,13 @@ func getEpisodeInfo(id string) EpisodeInfo {
 	return info.Data[0]
 }
 
-// deleteStream removes the stream to make Crunchyroll think we "left" the playback
-func deleteStream(contentId, sToken string) bool {
+// DeleteStream removes the stream to make Crunchyroll think we "left" the playback
+func DeleteStream(contentId, sToken string) bool {
 	req, err := http.NewRequest(http.MethodDelete, fmt.Sprintf("https://www.crunchyroll.com/playback/v1/token/%s/%s", contentId, sToken), nil)
 	if err != nil {
 		panic(err)
 	}
-	req.Header.Set("Authorization", "Bearer "+token)
+	req.Header.Set("Authorization", "Bearer "+Token)
 	req.Header.Set("User-Agent", "Mozilla/5.0 (X11; Linux x86_64; rv:147.0) Gecko/20100101 Firefox/147.0")
 	resp, err := DoRequest(req)
 	if err != nil {
