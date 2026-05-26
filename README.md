@@ -48,6 +48,8 @@ Usage of ./crunchyroll-downloader:
         Video quality (default "1080p")
 ```
 
+Language codes use the `ja-JP`, `en-US`, `de-DE` format. Use `all` to download every available track.
+
 Ex: to download the first season of *Hell's Paradise*:
 ```shell
 ./crunchyroll-downloader --url https://www.crunchyroll.com/series/GJ0H7Q5ZJ/hells-paradise --season 1 --etp-rt replace_this
