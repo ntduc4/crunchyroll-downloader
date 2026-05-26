@@ -1,5 +1,7 @@
 package main
 
+import "sort"
+
 var languageNames = map[string]string{
 	"en-US":  "English",
 	"en-IN":  "English (India)",
@@ -26,4 +28,21 @@ var languageNames = map[string]string{
 	"zh-TW":  "中文 (國語)",
 	"ko-KR":  "한국어",
 	"th-TH":  "ไทย",
+}
+
+func languageLabel(locale string) string {
+	if name, ok := languageNames[locale]; ok {
+		return name
+	}
+
+	return locale
+}
+
+func sortedLanguageKeys[V any](items map[string]V) []string {
+	keys := make([]string, 0, len(items))
+	for key := range items {
+		keys = append(keys, key)
+	}
+	sort.Strings(keys)
+	return keys
 }

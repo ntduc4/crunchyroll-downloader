@@ -79,6 +79,38 @@ func getBaseUrl(set *mpd.AdaptationSet, isVideoSet bool, quality string) (*strin
 	return nil, nil
 }
 
+func getVideoSet(manifest *mpd.MPD) *mpd.AdaptationSet {
+	for _, period := range manifest.Period {
+		for _, set := range period.AdaptationSets {
+			if set.MimeType == "video/mp4" {
+				return set
+			}
+		}
+	}
+
+	return nil
+}
+
+func getAudioSet(manifest *mpd.MPD, locale string) *mpd.AdaptationSet {
+	var fallback *mpd.AdaptationSet
+
+	for _, period := range manifest.Period {
+		for _, set := range period.AdaptationSets {
+			if set.MimeType != "audio/mp4" {
+				continue
+			}
+			if fallback == nil {
+				fallback = set
+			}
+			if set.Lang != nil && *set.Lang == locale {
+				return set
+			}
+		}
+	}
+
+	return fallback
+}
+
 func expandTimeline(timeline []*mpd.SegmentTimelineS, startNumber int64) []int64 {
 	var result []int64
 	segNum := startNumber

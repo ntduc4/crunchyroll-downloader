@@ -5,14 +5,13 @@ import (
 	"flag"
 	"fmt"
 	"os"
-	"slices"
 	"strings"
 )
 
 var (
 	token         = ""
-	audioLang     = flag.String("audio-lang", "ja-JP", "Audio language")
-	subtitlesLang = flag.String("subs-lang", "en-US", "Subtitles language")
+	audioLang     = flag.String("audio-lang", "all", "Audio language or 'all'")
+	subtitlesLang = flag.String("subs-lang", "all", "Subtitles language or 'all'")
 	videoQuality  = flag.String("video-quality", "1080p", "Video quality")
 	audioQuality  = flag.String("audio-quality", "192k", "Audio quality")
 	seasonNumber  = flag.Int("season", 0, "Season number. Not used if an episode link is entered")
@@ -35,19 +34,6 @@ func processUrl(url string) {
 
 	if contentType == "watch" {
 		info := getEpisodeInfo(contentId)
-		if info.EpisodeMetadata.AudioLocale != *audioLang {
-			correctGuidI := slices.IndexFunc(info.EpisodeMetadata.Versions, func(v *DubVersion) bool {
-				return v.AudioLocale == *audioLang
-			})
-
-			if correctGuidI == -1 {
-				print("! Invalid audio locale. Please put the locale in the \"ja-JP\", \"en-US\"... format.\n")
-				return
-			}
-			correctGuid := info.EpisodeMetadata.Versions[correctGuidI]
-			contentId = (*correctGuid).GUID
-		}
-
 		downloadEpisode(contentId, videoQuality, audioQuality, subtitlesLang, info)
 	} else {
 		seasons := getSeasons(contentId)
