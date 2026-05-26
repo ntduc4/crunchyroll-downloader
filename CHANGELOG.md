@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.3.1
+
+- Fix xml file perssiting when no debug flag was set
+
 ## 1.3.0
 
 - Multi-language audio support: download all available dubs into a single MKV

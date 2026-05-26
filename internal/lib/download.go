@@ -386,9 +386,15 @@ func DownloadEpisode(contentId string, VideoQuality, AudioQuality, SubtitlesLang
 		saveJSONFile(filepath.Join(*SetupDir, "playback.json"), episode)
 	}
 
-	manifestPath := strings.TrimSuffix(outputFile, ".mkv") + ".xml"
+	manifestPath := ""
+	if *DebugDump || setupMode {
+		manifestPath = strings.TrimSuffix(outputFile, ".mkv") + ".xml"
+	}
 	if setupMode {
 		manifestPath = filepath.Join(*SetupDir, "manifest.xml")
+	}
+	if *DecryptOnly && manifestPath == "" {
+		manifestPath = strings.TrimSuffix(outputFile, ".mkv") + ".xml"
 	}
 	var manifest *mpd.MPD
 	if *DecryptOnly {
@@ -480,9 +486,15 @@ func DownloadEpisode(contentId string, VideoQuality, AudioQuality, SubtitlesLang
 	for _, variant := range audioVariants[1:] {
 		fmt.Printf("Downloading audio for %s...\n", languageLabel(variant.AudioLocale))
 		variantEpisode := GetEpisode(variant.ContentID)
-		variantManifestPath := getAudioManifestPath(outputFile, variant.AudioLocale, true)
+		variantManifestPath := ""
+		if *DebugDump || setupMode {
+			variantManifestPath = getAudioManifestPath(outputFile, variant.AudioLocale, true)
+		}
 		if setupMode {
 			variantManifestPath = filepath.Join(*SetupDir, "manifests", variant.AudioLocale+".xml")
+		}
+		if *DecryptOnly && variantManifestPath == "" {
+			variantManifestPath = getAudioManifestPath(outputFile, variant.AudioLocale, true)
 		}
 		var variantManifest *mpd.MPD
 		if *DecryptOnly {
