@@ -568,10 +568,6 @@ func DownloadSeason(VideoQuality, AudioQuality, SubtitlesLang *string, episodes 
 func ProcessURL(url string) {
 	contentType := strings.Split(url, "/")[3]
 	contentId := strings.Split(url, "/")[4]
-	if len(contentId) != 9 && len(contentId) != 14 {
-		fmt.Printf("Invalid URL format: %s\n", url)
-		return
-	}
 	if contentType != "watch" && contentType != "series" {
 		fmt.Printf("Invalid URL (must be /watch/ or /series/): %s\n", url)
 		return
