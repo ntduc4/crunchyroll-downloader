@@ -13,6 +13,8 @@ You won't be banned or anything, I downloaded all Kaguya-Sama seasons to test du
 - Parallel segment downloads (10 workers) for faster downloads
 - Retry with backoff on connection errors
 - Batch download from a list of URLs
+- ASS subtitle processing: fixes ScaledBorderAndShadow, SRT conversion artifacts, OriginalScript; optional PlayRes and timestamp fixes
+- Font download and embedding into MKV (`--dl-fonts`)
 
 ## Requirements
 
@@ -34,12 +36,26 @@ Usage of ./crunchyroll-downloader:
         Audio language or 'all' (default "all")
   -audio-quality string
         Audio quality (default "192k")
+  -dl-fonts
+        Download subtitle fonts from Google Fonts and embed them in the MKV
   -etp-rt string
         The "etp_rt" cookie value of your account
+  -layout-res-fix
+        Override PlayRes to match video resolution (default false)
+  -no-ass-fix
+        Disable all ASS subtitle processing
+  -original-script-fix
+        Comment out OriginalScript line that can confuse renderers (default true)
+  -scaled-border-and-shadow-fix
+        Fix ScaledBorderAndShadow for correct border/shadow scaling (default true)
   -season int
         Season number. Not used if an episode link is entered
+  -srt-ass-fix
+        Clean up SRT-to-ASS conversion artifacts (default true)
   -subs-lang string
         Subtitles language or 'all' (default "all")
+  -subtitle-timestamp-fix
+        Auto-detect and fix subtitle timing offset (default false)
   -url string
         URL of the episode/season to download
   -urls string
@@ -49,6 +65,21 @@ Usage of ./crunchyroll-downloader:
 ```
 
 Language codes use the `ja-JP`, `en-US`, `de-DE` format. Use `all` to download every available track.
+
+### ASS subtitle processing flags
+
+Crunchyroll's ASS subtitles are authored for their own player and can render incorrectly in standard video players. These flags fix common issues:
+
+| Flag | Default | Behaviour |
+|---|---|---|
+| `--scaled-border-and-shadow-fix` | `true` | Sets `ScaledBorderAndShadow: yes` so border widths and shadow distances scale correctly with video resolution |
+| `--srt-ass-fix` | `true` | Removes zero-duration events and normalizes newlines from SRT-to-ASS conversion |
+| `--original-script-fix` | `true` | Comments out the `OriginalScript` metadata that can confuse some renderers |
+| `--layout-res-fix` | `false` | Overrides `PlayResX`/`PlayResY` in the ASS header to match the actual video dimensions |
+| `--subtitle-timestamp-fix` | `false` | Auto-detects a constant offset (>2s) and shifts all subtitle timestamps to start at 0 |
+| `--no-ass-fix` | `false` | Disables all of the above — passes through the original ASS file as-served |
+
+When `--dl-fonts` is enabled, font names referenced in the ASS styles and `\fn` override tags are downloaded from Google Fonts and attached to the MKV as embedded attachments.
 
 Ex: to download the first season of *Hell's Paradise*:
 ```shell

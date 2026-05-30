@@ -27,13 +27,13 @@ Created on 1.3.0, some feature refer to that version may no longer exist
 
 ## Subtitle processing
 
-- [ ] Font download and embedding (`--dlFonts`)
-- [ ] ASS subtitle fixes:
-  - [ ] `--layoutResFix`
-  - [ ] `--scaledBorderAndShadowFix`
-  - [ ] `--srtAssFix` (Closed Caption converter fix)
-  - [ ] `--originalScriptFix`
-  - [ ] `--subtitleTimestampFix`
+- [x] Font download and embedding (`--dlFonts`)
+- [x] ASS subtitle fixes:
+  - [x] `--layoutResFix`
+  - [x] `--scaledBorderAndShadowFix`
+  - [x] `--srtAssFix` (Closed Caption converter fix)
+  - [x] `--originalScriptFix`
+  - [x] `--subtitleTimestampFix`
 - [ ] VTT→ASS conversion (`--noASSConv` toggle)
 - [ ] Configurable font size (`--fontSize`)
 
@@ -78,11 +78,8 @@ Created on 1.3.0, some feature refer to that version may no longer exist
 
 ## Infrastructure
 
-- [ ] GUI mode
-- [ ] HiDive and ADN support (if ever multi-service)
 - [ ] Configurable timeout and wait time
 - [ ] `--tsd` (Total Session Death), kill all active streaming sessions
-- [ ] `--debug` flag for verbose diagnostic output
 
 ## Sonarr integration
 

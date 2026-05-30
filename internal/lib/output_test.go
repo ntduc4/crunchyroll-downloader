@@ -19,7 +19,7 @@ func TestBuildMuxArgs_SingleAudio_SingleSub(t *testing.T) {
 	audio := []mediaTrack{{Path: "/tmp/audio.m4a", Language: "ja-JP"}}
 	subs := []mediaTrack{{Path: "/tmp/subs.ass", Language: "en-US"}}
 
-	args := buildMuxArgs("/tmp/video.mp4", audio, subs, "/tmp/output.mkv", info)
+	args := buildMuxArgs("/tmp/video.mp4", audio, subs, nil, "/tmp/output.mkv", info)
 
 	assertArg := func(name, want string) {
 		found := false
@@ -72,7 +72,7 @@ func TestBuildMuxArgs_MultiAudio_MultiSub(t *testing.T) {
 		{Path: "/tmp/subs_pt.ass", Language: "pt-BR"},
 	}
 
-	args := buildMuxArgs("/tmp/video.mp4", audio, subs, "/tmp/output.mkv", info)
+	args := buildMuxArgs("/tmp/video.mp4", audio, subs, nil, "/tmp/output.mkv", info)
 
 	assertContains := func(name, substr string) {
 		found := false
@@ -118,7 +118,7 @@ func TestBuildMuxArgs_NoAudioStillProducesValidArgs(t *testing.T) {
 		},
 	}
 
-	args := buildMuxArgs("/tmp/v.mp4", nil, nil, "/tmp/o.mkv", info)
+	args := buildMuxArgs("/tmp/v.mp4", nil, nil, nil, "/tmp/o.mkv", info)
 	if args == nil {
 		t.Fatal("args should not be nil")
 	}
@@ -149,7 +149,7 @@ func TestBuildMuxArgs_MetadataFields(t *testing.T) {
 	audio := []mediaTrack{{Path: "/tmp/a.m4a", Language: "ja-JP"}}
 	subs := []mediaTrack{{Path: "/tmp/s.ass", Language: "en-US"}}
 
-	args := buildMuxArgs("/tmp/v.mp4", audio, subs, "/tmp/o.mkv", info)
+	args := buildMuxArgs("/tmp/v.mp4", audio, subs, nil, "/tmp/o.mkv", info)
 
 	assertContains := func(name, want string) {
 		found := false

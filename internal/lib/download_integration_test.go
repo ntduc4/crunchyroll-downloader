@@ -46,7 +46,7 @@ func TestAllTracksPipeline_ManyDubs(t *testing.T) {
 
 	audioTracks := tracksFromVariants(variants, "/tmp/ep_a_")
 	subtitleTracks := tracksFromLocales(subLanguages, "/tmp/ep_s_")
-	args := buildMuxArgs("/tmp/v.mp4", audioTracks, subtitleTracks, "/tmp/o.mkv", info)
+	args := buildMuxArgs("/tmp/v.mp4", audioTracks, subtitleTracks, nil, "/tmp/o.mkv", info)
 
 	for i := 0; i < len(variants); i++ {
 		requireArg(t, args, fmt.Sprintf("%d:a:0", i+1))
@@ -88,7 +88,7 @@ func TestAllTracksPipeline_FewDubs(t *testing.T) {
 
 	audioTracks := tracksFromVariants(variants, "/tmp/ep_b_")
 	subtitleTracks := tracksFromLocales(subLanguages, "/tmp/ep_b_")
-	args := buildMuxArgs("/tmp/v.mp4", audioTracks, subtitleTracks, "/tmp/o.mkv", info)
+	args := buildMuxArgs("/tmp/v.mp4", audioTracks, subtitleTracks, nil, "/tmp/o.mkv", info)
 
 	for i := 0; i < len(variants); i++ {
 		requireArg(t, args, fmt.Sprintf("%d:a:0", i+1))
@@ -152,7 +152,7 @@ func TestDownloadArgsOrder(t *testing.T) {
 	audioTracks := tracksFromVariants(variants, "/tmp/a_")
 	subLanguages := resolveSubtitleLanguages(makeSubMap("en-US", "pt-BR", "fr-FR"), "all")
 	subtitleTracks := tracksFromLocales(subLanguages, "/tmp/s_")
-	args := buildMuxArgs("/tmp/v.mp4", audioTracks, subtitleTracks, "/tmp/o.mkv", info)
+	args := buildMuxArgs("/tmp/v.mp4", audioTracks, subtitleTracks, nil, "/tmp/o.mkv", info)
 
 	if n := len(findArg(args, "-i")); n != 1+len(audioTracks)+len(subtitleTracks) {
 		t.Errorf("expected %d -i args, got %d", 1+len(audioTracks)+len(subtitleTracks), n)
@@ -176,7 +176,7 @@ func TestMuxArgs_Metadata(t *testing.T) {
 	audio := []mediaTrack{{Path: "/tmp/a.m4a", Language: "ja-JP"}}
 
 	for _, info := range infos {
-		args := buildMuxArgs("/tmp/v.mp4", audio, nil, "/tmp/o.mkv", info)
+		args := buildMuxArgs("/tmp/v.mp4", audio, nil, nil, "/tmp/o.mkv", info)
 		wants := []string{
 			fmt.Sprintf("title=S%02dE%02d - %s", info.EpisodeMetadata.SeasonNumber, info.EpisodeMetadata.EpisodeNumber, info.Title),
 			"show=" + info.EpisodeMetadata.SeriesTitle,

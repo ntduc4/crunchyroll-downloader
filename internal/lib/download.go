@@ -9,6 +9,7 @@ import (
 	"os"
 	"path/filepath"
 	"sort"
+	"strconv"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -31,7 +32,21 @@ var (
 	DecryptOnly   *bool
 	SeasonNumber  *int
 	SetupDir      *string
+
+	NoASSFix              *bool
+	ScaledBorderAndShadowFix *bool
+	SrtAssFix             *bool
+	OriginalScriptFix     *bool
+	SubtitleTimestampFix  *bool
+	LayoutResFix          *bool
+	DlFonts               *bool
 )
+
+func parseVideoQuality(q string) int {
+	q = strings.ReplaceAll(q, "p", "")
+	n, _ := strconv.Atoi(q)
+	return n
+}
 
 func buildUrl(base, representationId, file string, partNum *int64) string {
 	if partNum != nil {
@@ -421,6 +436,7 @@ func DownloadEpisode(contentId string, VideoQuality, AudioQuality, SubtitlesLang
 
 	subtitleLanguages := resolveSubtitleLanguages(episode.Subtitles, *SubtitlesLang)
 	subtitleFiles := make([]mediaTrack, 0, len(subtitleLanguages))
+	videoHeight := parseVideoQuality(*VideoQuality)
 	for _, locale := range subtitleLanguages {
 		subtitles := episode.Subtitles[locale]
 		fmt.Printf("Downloading subtitles for %s...\n", languageLabel(locale))
@@ -428,7 +444,13 @@ func DownloadEpisode(contentId string, VideoQuality, AudioQuality, SubtitlesLang
 		if setupMode {
 			subPath = filepath.Join(*SetupDir, "subtitles", locale+".ass")
 		}
-		subtitleFiles = append(subtitleFiles, mediaTrack{Path: downloadSubs(subtitles.URL, subPath), Language: locale})
+		subFile := downloadSubs(subtitles.URL, subPath)
+		if !*NoASSFix {
+			if err := processSubtitleFile(subFile, videoHeight); err != nil {
+				fmt.Printf("Warning: failed to process subtitles for %s: %v\n", locale, err)
+			}
+		}
+		subtitleFiles = append(subtitleFiles, mediaTrack{Path: subFile, Language: locale})
 	}
 	if len(subtitleFiles) > 0 {
 		fmt.Println("Downloaded subtitles!")
@@ -540,12 +562,14 @@ func DownloadEpisode(contentId string, VideoQuality, AudioQuality, SubtitlesLang
 		}
 	}
 
+	fontFiles := dlFontsForSubs(subtitleFiles)
+
 	if setupMode {
 		fmt.Println("\nSetup finished! All tracks saved to", *SetupDir)
 		return
 	}
 
-	mergeEverything(videoFile, audioFiles, subtitleFiles, outputFile, info, *DebugDump)
+	mergeEverything(videoFile, audioFiles, subtitleFiles, fontFiles, outputFile, info, *DebugDump)
 }
 
 func saveJSONFile(path string, v interface{}) {

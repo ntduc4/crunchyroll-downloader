@@ -24,6 +24,14 @@ func main() {
 	lib.DecryptOnly = flag.Bool("decrypt-only", false, "Decrypt from local .xml and .enc dumps instead of downloading media")
 	lib.SetupDir = flag.String("setup-dir", "", "Save all tracks and metadata to directory for testing (skips muxing)")
 
+	lib.NoASSFix = flag.Bool("no-ass-fix", false, "Disable all ASS subtitle processing")
+	lib.ScaledBorderAndShadowFix = flag.Bool("scaled-border-and-shadow-fix", true, "Fix ScaledBorderAndShadow for correct border/shadow scaling")
+	lib.SrtAssFix = flag.Bool("srt-ass-fix", true, "Clean up SRT-to-ASS conversion artifacts")
+	lib.OriginalScriptFix = flag.Bool("original-script-fix", true, "Comment out OriginalScript line that can confuse renderers")
+	lib.SubtitleTimestampFix = flag.Bool("subtitle-timestamp-fix", false, "Auto-detect and fix subtitle timing offset")
+	lib.LayoutResFix = flag.Bool("layout-res-fix", false, "Override PlayRes to match video resolution")
+	lib.DlFonts = flag.Bool("dl-fonts", false, "Download subtitle fonts from Google Fonts and embed them in the MKV")
+
 	flag.Parse()
 
 	if *url == "" && *urlsFile == "" {
