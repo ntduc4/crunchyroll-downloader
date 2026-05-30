@@ -48,6 +48,10 @@ func main() {
 		scanner := bufio.NewScanner(file)
 		var urls []string
 		for scanner.Scan() {
+			err := scanner.Err()
+			if err != nil {
+				panic(err)
+			}
 			line := strings.TrimSpace(scanner.Text())
 			if line != "" && strings.HasPrefix(line, "http") {
 				urls = append(urls, line)

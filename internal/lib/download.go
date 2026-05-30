@@ -43,7 +43,7 @@ func buildUrl(base, representationId, file string, partNum *int64) string {
 
 func downloadPart(url string) ([]byte, error) {
 	maxRetries := 5
-	for attempt := 0; attempt < maxRetries; attempt++ {
+	for attempt := range maxRetries {
 		if attempt > 0 {
 			time.Sleep(time.Duration(attempt) * 2 * time.Second)
 		}
@@ -548,7 +548,7 @@ func DownloadEpisode(contentId string, VideoQuality, AudioQuality, SubtitlesLang
 	mergeEverything(videoFile, audioFiles, subtitleFiles, outputFile, info, *DebugDump)
 }
 
-func saveJSONFile(path string, v interface{}) {
+func saveJSONFile(path string, v any) {
 	data, err := json.MarshalIndent(v, "", "  ")
 	if err != nil {
 		panic(err)
