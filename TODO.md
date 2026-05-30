@@ -11,16 +11,9 @@ Created on 1.3.0, some feature refer to that version may no longer exist
 - [ ] Username/password login (currently only etp-rt cookie)
 - [ ] Token-based auth (`--token`)
 
-## Discovery
-
-- [ ] Built-in search (`--search`) with pagination and type filter (series, movie, episode)
-- [ ] `--movie-listing` support for movie downloads
-- [ ] `--extid` / `--externalid` for legacy Crunchyroll IDs
-- [ ] `--list` flag to list episodes of a series without downloading
-
 ## Audio & subtitle selection
 
-- [ ] Hardsub download (`--hslang`), download video with burned-in subtitles
+<!-- - [ ] Hardsub download (`--hslang`), download video with burned-in subtitles -->
 - [ ] ISO 639-2 language codes as aliases (`eng`, `jpn`, `spa`) alongside BCP-47
 - [ ] `--subsOnly` flag, download only subtitles (no video or audio)
 - [ ] `--ignore-dubs` flag, skip dubbed content
@@ -36,12 +29,6 @@ Created on 1.3.0, some feature refer to that version may no longer exist
   - [x] `--subtitleTimestampFix`
 - [ ] VTT→ASS conversion (`--noASSConv` toggle)
 - [ ] Configurable font size (`--fontSize`)
-
-## Quality & streams
-
-- [ ] Per-device endpoint selection for video (`--vstream`) and audio (`--astream`), e.g. androidtv gives CBR video, android gives 192k audio
-- [ ] Numeric quality levels (`-q 0` = max)
-- [ ] `--dont-autoselect-quality` flag, fail instead of silently falling back to a lower quality
 
 ## Muxing
 

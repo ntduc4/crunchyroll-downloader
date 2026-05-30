@@ -14,8 +14,8 @@ func main() {
 	url := flag.String("url", "", "URL of the episode/season to download")
 	urlsFile := flag.String("urls", "", "Path to a text file with one URL per line")
 
-	lib.AudioLang = flag.String("audio-lang", "all", "Audio language or 'all'")
-	lib.SubtitlesLang = flag.String("subs-lang", "all", "Subtitles language or 'all'")
+	lib.AudioLang = flag.String("audio-lang", "all", "Audio language, comma-separated list, or 'all'")
+	lib.SubtitlesLang = flag.String("subs-lang", "all", "Subtitles language, comma-separated list, or 'all'")
 	lib.VideoQuality = flag.String("video-quality", "1080p", "Video quality")
 	lib.AudioQuality = flag.String("audio-quality", "192k", "Audio quality")
 	lib.SeasonNumber = flag.Int("season", 0, "Season number. Not used if an episode link is entered")

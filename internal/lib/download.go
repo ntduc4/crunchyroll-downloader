@@ -288,12 +288,31 @@ func resolveAudioVariants(contentID string, info EpisodeInfo, requestedLanguage 
 	}
 
 	if requestedLanguage != "all" {
-		variantID, ok := variantsByLocale[requestedLanguage]
-		if !ok {
-			print("! Invalid audio locale. Please put the locale in the \"ja-JP\", \"en-US\"... format, or use \"all\".\n")
+		wanted := parseLanguageList(requestedLanguage)
+		if len(wanted) == 1 {
+			variantID, ok := variantsByLocale[wanted[0]]
+			if !ok {
+				print("! Invalid audio locale. Please put the locale in the \"ja-JP\", \"en-US\"... format, or use \"all\".\n")
+				os.Exit(1)
+			}
+			return []episodeVariant{{ContentID: variantID, AudioLocale: wanted[0]}}
+		}
+
+		var variants []episodeVariant
+		seen := make(map[string]bool)
+		for _, locale := range wanted {
+			variantID, ok := variantsByLocale[locale]
+			if !ok || seen[locale] {
+				continue
+			}
+			seen[locale] = true
+			variants = append(variants, episodeVariant{ContentID: variantID, AudioLocale: locale})
+		}
+		if len(variants) == 0 {
+			print("! None of the requested audio locales are available.\n")
 			os.Exit(1)
 		}
-		return []episodeVariant{{ContentID: variantID, AudioLocale: requestedLanguage}}
+		return variants
 	}
 
 	variants := []episodeVariant{{ContentID: contentID, AudioLocale: info.EpisodeMetadata.AudioLocale}}
@@ -314,11 +333,28 @@ func resolveAudioVariants(contentID string, info EpisodeInfo, requestedLanguage 
 
 func resolveSubtitleLanguages(subtitles map[string]*Subtitle, requestedLanguage string) []string {
 	if requestedLanguage != "all" {
-		sub := subtitles[requestedLanguage]
-		if sub == nil || sub.URL == "" {
-			return nil
+		wanted := parseLanguageList(requestedLanguage)
+		if len(wanted) == 1 {
+			sub := subtitles[wanted[0]]
+			if sub == nil || sub.URL == "" {
+				return nil
+			}
+			return []string{wanted[0]}
 		}
-		return []string{requestedLanguage}
+
+		var result []string
+		seen := make(map[string]bool)
+		for _, locale := range wanted {
+			if seen[locale] {
+				continue
+			}
+			seen[locale] = true
+			sub := subtitles[locale]
+			if sub != nil && sub.URL != "" {
+				result = append(result, locale)
+			}
+		}
+		return result
 	}
 
 	locales := sortedLanguageKeys(subtitles)
@@ -334,6 +370,17 @@ func resolveSubtitleLanguages(subtitles map[string]*Subtitle, requestedLanguage 
 	}
 
 	return filtered
+}
+
+func parseLanguageList(s string) []string {
+	var result []string
+	for _, part := range strings.Split(s, ",") {
+		trimmed := strings.TrimSpace(part)
+		if trimmed != "" {
+			result = append(result, trimmed)
+		}
+	}
+	return result
 }
 
 func getAudioTrackOutputPath(outputFile, locale string, includeLocale bool) string {

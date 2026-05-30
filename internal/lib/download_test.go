@@ -82,6 +82,107 @@ func TestResolveAudioVariants_All_SingleDub(t *testing.T) {
 	}
 }
 
+func TestParseLanguageList(t *testing.T) {
+	tests := []struct {
+		input string
+		want  []string
+	}{
+		{"ja-JP", []string{"ja-JP"}},
+		{"ja-JP,en-US", []string{"ja-JP", "en-US"}},
+		{" ja-JP , en-US ", []string{"ja-JP", "en-US"}},
+		{"all", []string{"all"}},
+		{"", nil},
+		{" , ", nil},
+	}
+	for _, tt := range tests {
+		got := parseLanguageList(tt.input)
+		if !reflect.DeepEqual(got, tt.want) {
+			t.Errorf("parseLanguageList(%q) = %v, want %v", tt.input, got, tt.want)
+		}
+	}
+}
+
+func TestResolveAudioVariants_List(t *testing.T) {
+	info := makeInfo("ja-JP", []*DubVersion{
+		{AudioLocale: "en-US", GUID: "GUID-EN"},
+		{AudioLocale: "de-DE", GUID: "GUID-DE"},
+		{AudioLocale: "fr-FR", GUID: "GUID-FR"},
+	})
+
+	got := resolveAudioVariants("ORIG-ID", info, "en-US,fr-FR")
+	want := []episodeVariant{
+		{ContentID: "GUID-EN", AudioLocale: "en-US"},
+		{ContentID: "GUID-FR", AudioLocale: "fr-FR"},
+	}
+	if !reflect.DeepEqual(got, want) {
+		t.Errorf("resolveAudioVariants(list) = %v, want %v", got, want)
+	}
+}
+
+func TestResolveAudioVariants_ListWithPrimary(t *testing.T) {
+	info := makeInfo("ja-JP", []*DubVersion{
+		{AudioLocale: "en-US", GUID: "GUID-EN"},
+		{AudioLocale: "de-DE", GUID: "GUID-DE"},
+	})
+
+	got := resolveAudioVariants("ORIG-ID", info, "en-US,ja-JP")
+	want := []episodeVariant{
+		{ContentID: "GUID-EN", AudioLocale: "en-US"},
+		{ContentID: "ORIG-ID", AudioLocale: "ja-JP"},
+	}
+	if !reflect.DeepEqual(got, want) {
+		t.Errorf("resolveAudioVariants(list with primary) = %v, want %v", got, want)
+	}
+}
+
+func TestResolveAudioVariants_ListDeduplicates(t *testing.T) {
+	info := makeInfo("ja-JP", []*DubVersion{
+		{AudioLocale: "en-US", GUID: "GUID-EN"},
+	})
+
+	got := resolveAudioVariants("ORIG-ID", info, "en-US,en-US")
+	if len(got) != 1 {
+		t.Errorf("expected deduplication, got %v", got)
+	}
+}
+
+func TestResolveSubtitleLanguages_List(t *testing.T) {
+	subs := map[string]*Subtitle{
+		"en-US": {Language: "en-US", URL: "http://example.com/en.ass"},
+		"ja-JP": {Language: "ja-JP", URL: "http://example.com/ja.ass"},
+		"pt-BR": {Language: "pt-BR", URL: "http://example.com/pt.ass"},
+	}
+
+	got := resolveSubtitleLanguages(subs, "en-US,pt-BR")
+	want := []string{"en-US", "pt-BR"}
+	if !reflect.DeepEqual(got, want) {
+		t.Errorf("resolveSubtitleLanguages(list) = %v, want %v", got, want)
+	}
+}
+
+func TestResolveSubtitleLanguages_ListSkipsMissing(t *testing.T) {
+	subs := map[string]*Subtitle{
+		"en-US": {Language: "en-US", URL: "http://example.com/en.ass"},
+	}
+
+	got := resolveSubtitleLanguages(subs, "en-US,ja-JP,de-DE")
+	want := []string{"en-US"}
+	if !reflect.DeepEqual(got, want) {
+		t.Errorf("resolveSubtitleLanguages(list with missing) = %v, want %v", got, want)
+	}
+}
+
+func TestResolveSubtitleLanguages_ListDeduplicates(t *testing.T) {
+	subs := map[string]*Subtitle{
+		"en-US": {Language: "en-US", URL: "http://example.com/en.ass"},
+	}
+
+	got := resolveSubtitleLanguages(subs, "en-US,en-US")
+	if len(got) != 1 {
+		t.Errorf("expected deduplication, got %v", got)
+	}
+}
+
 func TestResolveAudioVariants_InvalidLocaleExits(t *testing.T) {
 	// resolveAudioVariants calls os.Exit(1) on invalid locale.
 	// Run it in a subprocess to verify.

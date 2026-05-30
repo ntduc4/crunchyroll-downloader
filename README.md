@@ -33,7 +33,7 @@ Check the [latest release](https://github.com/CuteTenshii/crunchyroll-downloader
 ```shell
 Usage of ./crunchyroll-downloader:
   -audio-lang string
-        Audio language or 'all' (default "all")
+        Audio language, comma-separated list, or 'all' (default "all")
   -audio-quality string
         Audio quality (default "192k")
   -dl-fonts
@@ -53,7 +53,7 @@ Usage of ./crunchyroll-downloader:
   -srt-ass-fix
         Clean up SRT-to-ASS conversion artifacts (default true)
   -subs-lang string
-        Subtitles language or 'all' (default "all")
+        Subtitles language, comma-separated list, or 'all' (default "all")
   -subtitle-timestamp-fix
         Auto-detect and fix subtitle timing offset (default false)
   -url string
@@ -65,6 +65,7 @@ Usage of ./crunchyroll-downloader:
 ```
 
 Language codes use the `ja-JP`, `en-US`, `de-DE` format. Use `all` to download every available track.
+Use a comma-separated list to select multiple specific tracks: `--audio-lang ja-JP,en-US --subs-lang en-US,pt-BR`.
 
 ### ASS subtitle processing flags
 
